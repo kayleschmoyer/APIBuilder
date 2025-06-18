@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>API Builder</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; }
+    .table { margin-bottom: 1em; }
+    .fields { margin-left: 1em; }
+  </style>
+</head>
+<body>
+<h1>Select Tables and Fields</h1>
+<div id="tables"></div>
+<button id="generate">Generate API</button>
+<script>
+async function loadSchema() {
+  const res = await fetch('/schema');
+  const data = await res.json();
+  const container = document.getElementById('tables');
+  for (const [tbl, cols] of Object.entries(data)) {
+    const div = document.createElement('div');
+    div.className = 'table';
+    const h = document.createElement('h3');
+    h.textContent = tbl;
+    div.appendChild(h);
+    const fieldDiv = document.createElement('div');
+    fieldDiv.className = 'fields';
+    cols.forEach(c => {
+      const id = tbl + '_' + c;
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.id = id; cb.name = tbl; cb.value = c;
+      const label = document.createElement('label');
+      label.htmlFor = id;
+      label.textContent = c;
+      const wrapper = document.createElement('div');
+      wrapper.appendChild(cb);
+      wrapper.appendChild(label);
+      fieldDiv.appendChild(wrapper);
+    });
+    div.appendChild(fieldDiv);
+    container.appendChild(div);
+  }
+}
+loadSchema();
+
+document.getElementById('generate').onclick = async () => {
+  const selections = {};
+  document.querySelectorAll('#tables input[type=checkbox]:checked').forEach(cb => {
+    if (!selections[cb.name]) selections[cb.name] = [];
+    selections[cb.name].push(cb.value);
+  });
+  await fetch('/configure', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(selections)
+  });
+  alert('Routes generated');
+};
+</script>
+</body>
+</html>
