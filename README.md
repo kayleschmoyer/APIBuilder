@@ -1,12 +1,13 @@
 # APIBuilder
 
-APIBuilder is a simple tool that automatically generates a REST API for all tables in a SQL Server database.
+APIBuilder is a simple tool that generates REST APIs for SQL Server tables. It includes a small web interface so you can pick exactly which tables and columns you want to expose.
 
 ## Features
 
 - Connects to a local or remote SQL Server instance using a connection pool.
-- Inspects `INFORMATION_SCHEMA` to find all tables and their primary keys.
-- Generates CRUD endpoints for every table (list, get by id, create, update, delete).
+- Inspects `INFORMATION_SCHEMA` to find all tables and columns.
+- Web UI allows choosing tables and columns to expose.
+- Generates CRUD endpoints (list, get by id, create, update, delete) for the selected tables.
 - Uses parameterized queries for all data access to avoid SQL injection.
 - Runs as an Express application on Node.js.
 
@@ -34,7 +35,9 @@ APIBuilder is a simple tool that automatically generates a REST API for all tabl
    npm start
    ```
 
-   The server will introspect the database and create endpoints for each table.
+   Then open `http://localhost:3000/admin` in your browser. Select the tables and
+   columns you want and click **Generate API**. Endpoints will be created on the
+   fly for your selections.
 
 ## Example
 
