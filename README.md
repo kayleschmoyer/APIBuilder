@@ -1,5 +1,3 @@
-# APIBuilder
-
 APIBuilder is a simple tool that generates REST APIs for SQL Server tables. It includes a small web interface so you can pick exactly which tables and columns you want to expose.
 
 ## Features
@@ -19,7 +17,9 @@ APIBuilder is a simple tool that generates REST APIs for SQL Server tables. It i
    npm install
    ```
 
-2. Set environment variables or edit `server.js` for connection details:
+2. Copy `.env.example` to `.env` and edit it with your SQL Server settings. The
+   server loads this file automatically using `dotenv`. Alternatively, set the
+   following environment variables:
 
    - `DB_USER` – SQL Server username (default `sa`)
    - `DB_PASSWORD` – password
@@ -27,7 +27,6 @@ APIBuilder is a simple tool that generates REST APIs for SQL Server tables. It i
    - `DB_NAME` – database name (default `master`)
    - `PORT` – port for the HTTP server (default `3000`)
 
-   These can be placed in a `.env` file or supplied by your environment.
 
 3. Start the API server:
 
@@ -35,9 +34,9 @@ APIBuilder is a simple tool that generates REST APIs for SQL Server tables. It i
    npm start
    ```
 
-   Then open `http://localhost:3000/admin` in your browser. Select the tables and
-   columns you want and click **Generate API**. Endpoints will be created on the
-   fly for your selections.
+   On startup the server exposes all tables that have primary keys. You can open
+   `http://localhost:3000/admin` to selectively regenerate endpoints if you want
+   finer control.
 
 ## Example
 
@@ -56,4 +55,3 @@ The same pattern applies to all other tables that have primary keys defined.
 - Only tables with primary keys are exposed for safety. Tables without primary keys are skipped.
 - Column and table names are validated to contain only letters, numbers and underscores to mitigate SQL injection risks.
 - This project intentionally avoids database-specific features beyond standard SQL so that it works with any SQL Server edition.
-

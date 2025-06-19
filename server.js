@@ -1,20 +1,30 @@
 const express = require('express');
 const sql = require('mssql');
 const path = require('path');
+require('dotenv').config();
 const app = express();
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const config = {
-  user: process.env.DB_USER || 'sa',
-  password: process.env.DB_PASSWORD || 'your_password',
-  server: process.env.DB_SERVER || 'localhost',
-  database: process.env.DB_NAME || 'master',
-  options: {
-    trustServerCertificate: true,
-  },
-};
+function getConfig() {
+  return {
+    user: process.env.DB_USER || 'sa',
+    password: process.env.DB_PASSWORD || 'your_password',
+    server: process.env.DB_SERVER || 'localhost',
+    database: process.env.DB_NAME || 'master',
+    port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 1433,
+    options: {
+      trustServerCertificate: true,
+    },
+  };
+}
+
+const config = getConfig();
+
+if (typeof config.server !== 'string' || !config.server) {
+  throw new Error('DB_SERVER environment variable must be a non-empty string');
+}
 
 let schema = {};
 
@@ -147,6 +157,9 @@ async function start() {
   try {
     await sql.connect(config);
     await loadSchema();
+    for (const tbl of Object.keys(schema)) {
+      await createCrudRoutes(app, tbl);
+    }
     const port = process.env.PORT || 3000;
     app.listen(port, () => console.log('API server listening on ' + port));
   } catch (err) {
