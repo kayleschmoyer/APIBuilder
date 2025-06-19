@@ -21,8 +21,15 @@ const swagger = {
 };
 
 app.get('/schema', async (req, res) => {
-  if (!Object.keys(schema).length) schema = await loadSchema();
-  res.json(schema);
+  try {
+    if (!Object.keys(schema).length) {
+      schema = await loadSchema();
+    }
+    res.json(schema);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.post('/configure', async (req, res) => {

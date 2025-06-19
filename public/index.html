@@ -240,7 +240,8 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload),
             });
-            if (!res.ok) throw new Error('Server error');
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Server error');
             setSuccess(true);
             setTimeout(() => {
               setStep(1);
@@ -252,7 +253,7 @@
               setSuccess(false);
             }, 3000);
           } catch (e) {
-            setError('Error generating API. Please try again.');
+            setError(e.message || 'Error generating API. Please try again.');
           } finally {
             setLoading(false);
           }
