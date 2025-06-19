@@ -10,6 +10,7 @@ APIBuilder is an API generator for SQL Server. It provides a sleek React + Tailw
 - Generates versioned RESTful endpoints with JWT or API key security
 - Optional rate limiting middleware
 - Automatically publishes Swagger documentation
+- Saves generated CRUD snippets in the `generated/` folder
 
 ## Usage
 
@@ -22,7 +23,9 @@ APIBuilder is an API generator for SQL Server. It provides a sleek React + Tailw
    ```bash
    npm start
    ```
-   Open `http://localhost:3000/` to launch the builder UI. After generating the API, docs are available at `http://localhost:3000/docs`.
+    Open `http://localhost:3000/` to launch the builder UI. After generating the API, docs are available at `http://localhost:3000/docs`.
+    The configuration used is saved under `configs/` and a code snippet for each
+    table is written to `generated/`.
 
 ## Example
 
