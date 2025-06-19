@@ -108,7 +108,12 @@ async function createCrud({ app, basePath, table, mapping, rateLimit, auth, swag
     const tag = tableSafe;
 
     if (!swagger.tags) swagger.tags = [];
-    swagger.tags.push({ name: tag, description: `${tableSafe} operations` });
+    if (!swagger.tags.find(t => t.name === tag)) {
+      swagger.tags.push({ name: tag, description: `${tableSafe} operations` });
+    }
+
+    if (!swagger.components) swagger.components = {};
+    if (!swagger.components.schemas) swagger.components.schemas = {};
 
     const pathBase = `${basePath}/${tableSafe}`;
 
@@ -121,15 +126,52 @@ async function createCrud({ app, basePath, table, mapping, rateLimit, auth, swag
     };
 
     const properties = {};
+    const exampleRecord = {};
     for (const alias of Object.values(mapping)) {
-      properties[alias] = { type: 'string', description: `${alias} field` };
+      properties[alias] = {
+        type: 'string',
+        description: `${alias} field`,
+        example: `${alias} example`,
+      };
+      exampleRecord[alias] = `${alias} example`;
     }
+
+    const schemaName = `${tableSafe}`;
+    swagger.components.schemas[schemaName] = {
+      type: 'object',
+      properties,
+      description: `${tableSafe} object`,
+    };
 
     const bodySchema = {
       required: true,
       content: {
         'application/json': {
-          schema: { type: 'object', properties },
+          schema: { $ref: `#/components/schemas/${schemaName}` },
+          example: exampleRecord,
+        },
+      },
+    };
+
+    const okListResponse = {
+      description: 'Successful response',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'array',
+            items: { $ref: `#/components/schemas/${schemaName}` },
+          },
+          example: [exampleRecord],
+        },
+      },
+    };
+
+    const okItemResponse = {
+      description: 'Successful response',
+      content: {
+        'application/json': {
+          schema: { $ref: `#/components/schemas/${schemaName}` },
+          example: exampleRecord,
         },
       },
     };
@@ -138,15 +180,15 @@ async function createCrud({ app, basePath, table, mapping, rateLimit, auth, swag
       get: {
         tags: [tag],
         summary: `List ${tableSafe}`,
-        description: `Retrieve an array of ${tableSafe} records`,
-        responses: { '200': { description: 'OK' } },
+        description: `Retrieve an array of **${tableSafe}** records.`,
+        responses: { '200': okListResponse },
       },
       post: {
         tags: [tag],
         summary: `Create ${tableSafe}`,
-        description: `Create a new ${tableSafe} record`,
+        description: `Create a new **${tableSafe}** record.`,
         requestBody: bodySchema,
-        responses: { '201': { description: 'Created' } },
+        responses: { '201': okItemResponse },
       },
     };
 
@@ -154,31 +196,31 @@ async function createCrud({ app, basePath, table, mapping, rateLimit, auth, swag
       get: {
         tags: [tag],
         summary: `Get ${tableSafe}`,
-        description: `Retrieve a single ${tableSafe} by id`,
+        description: `Retrieve a single **${tableSafe}** by id`,
         parameters: [idParam],
         responses: {
-          '200': { description: 'OK' },
+          '200': okItemResponse,
           '404': { description: 'Not Found' },
         },
       },
       put: {
         tags: [tag],
         summary: `Update ${tableSafe}`,
-        description: `Update an existing ${tableSafe} record`,
+        description: `Update an existing **${tableSafe}** record`,
         parameters: [idParam],
         requestBody: bodySchema,
         responses: {
-          '200': { description: 'OK' },
+          '200': okItemResponse,
           '404': { description: 'Not Found' },
         },
       },
       delete: {
         tags: [tag],
         summary: `Delete ${tableSafe}`,
-        description: `Delete an existing ${tableSafe} record`,
+        description: `Delete an existing **${tableSafe}** record`,
         parameters: [idParam],
         responses: {
-          '200': { description: 'OK' },
+          '200': okItemResponse,
           '404': { description: 'Not Found' },
         },
       },
