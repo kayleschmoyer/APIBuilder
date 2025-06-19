@@ -1,6 +1,47 @@
 const express = require('express');
 const { getPrimaryKey, getPool } = require('./db');
+const config = require('./config');
 const sanitize = name => { if (!/^\w+$/.test(name)) throw new Error('Unsafe identifier'); return name; };
+
+function buildCodeSamples(method, url, body = {}) {
+  const payload = JSON.stringify(body);
+  switch (method.toLowerCase()) {
+    case 'get':
+      return [
+        { lang: 'curl', label: 'Curl', source: `curl -X GET ${url}` },
+        { lang: 'Node.js', label: 'Node', source: `await axios.get('${url}')` },
+        { lang: 'Python', label: 'Python', source: `requests.get('${url}')` },
+      ];
+    case 'post':
+      return [
+        {
+          lang: 'curl',
+          label: 'Curl',
+          source: `curl -X POST ${url} -H 'Content-Type: application/json' -d '${payload}'`,
+        },
+        { lang: 'Node.js', label: 'Node', source: `await axios.post('${url}', ${payload})` },
+        { lang: 'Python', label: 'Python', source: `requests.post('${url}', json=${payload})` },
+      ];
+    case 'put':
+      return [
+        {
+          lang: 'curl',
+          label: 'Curl',
+          source: `curl -X PUT ${url} -H 'Content-Type: application/json' -d '${payload}'`,
+        },
+        { lang: 'Node.js', label: 'Node', source: `await axios.put('${url}', ${payload})` },
+        { lang: 'Python', label: 'Python', source: `requests.put('${url}', json=${payload})` },
+      ];
+    case 'delete':
+      return [
+        { lang: 'curl', label: 'Curl', source: `curl -X DELETE ${url}` },
+        { lang: 'Node.js', label: 'Node', source: `await axios.delete('${url}')` },
+        { lang: 'Python', label: 'Python', source: `requests.delete('${url}')` },
+      ];
+    default:
+      return [];
+  }
+}
 
 function mapRow(row, mapping) {
   const out = {};
@@ -116,6 +157,7 @@ async function createCrud({ app, basePath, table, mapping, rateLimit, auth, swag
     if (!swagger.components.schemas) swagger.components.schemas = {};
 
     const pathBase = `${basePath}/${tableSafe}`;
+    const baseUrl = `http://localhost:${config.port}`;
 
     const idParam = {
       name: 'id',
@@ -182,6 +224,7 @@ async function createCrud({ app, basePath, table, mapping, rateLimit, auth, swag
         summary: `List ${tableSafe}`,
         description: `Retrieve an array of **${tableSafe}** records.`,
         responses: { '200': okListResponse },
+        'x-codeSamples': buildCodeSamples('get', `${baseUrl}${pathBase}`),
       },
       post: {
         tags: [tag],
@@ -189,6 +232,7 @@ async function createCrud({ app, basePath, table, mapping, rateLimit, auth, swag
         description: `Create a new **${tableSafe}** record.`,
         requestBody: bodySchema,
         responses: { '201': okItemResponse },
+        'x-codeSamples': buildCodeSamples('post', `${baseUrl}${pathBase}`, exampleRecord),
       },
     };
 
@@ -202,6 +246,7 @@ async function createCrud({ app, basePath, table, mapping, rateLimit, auth, swag
           '200': okItemResponse,
           '404': { description: 'Not Found' },
         },
+        'x-codeSamples': buildCodeSamples('get', `${baseUrl}${pathBase}/{id}`),
       },
       put: {
         tags: [tag],
@@ -213,6 +258,7 @@ async function createCrud({ app, basePath, table, mapping, rateLimit, auth, swag
           '200': okItemResponse,
           '404': { description: 'Not Found' },
         },
+        'x-codeSamples': buildCodeSamples('put', `${baseUrl}${pathBase}/{id}`, exampleRecord),
       },
       delete: {
         tags: [tag],
@@ -223,6 +269,7 @@ async function createCrud({ app, basePath, table, mapping, rateLimit, auth, swag
           '200': okItemResponse,
           '404': { description: 'Not Found' },
         },
+        'x-codeSamples': buildCodeSamples('delete', `${baseUrl}${pathBase}/{id}`),
       },
     };
   }
