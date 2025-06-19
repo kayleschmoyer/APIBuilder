@@ -17,7 +17,7 @@ const limiter = rateLimit({ windowMs: 60 * 1000, max: 100 });
 let schema = {};
 const swagger = {
   openapi: '3.0.0',
-  info: { title: 'Generated API', version: '1.0.0' },
+  info: { title: 'Elite API Explorer', version: '1.0.0' },
   paths: {},
 };
 
@@ -80,7 +80,26 @@ app.get('/swagger.json', (req, res) => {
   res.json(swagger);
 });
 
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(null, { swaggerUrl: '/swagger.json' }));
+const swaggerUiOptions = {
+  swaggerUrl: '/swagger.json',
+  explorer: true,
+  customSiteTitle: 'Elite API Explorer',
+  customCss: `
+    .swagger-ui .topbar {
+      background-color: #0f172a;
+    }
+    .swagger-ui .topbar .link, .swagger-ui .topbar .link:visited {
+      color: #fff;
+      font-weight: bold;
+      font-size: 1.25rem;
+    }
+    .swagger-ui .info hgroup.main h2, .swagger-ui .info hgroup.main a {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+  `,
+};
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(null, swaggerUiOptions));
 
 (async () => {
   const codeDir = path.join(__dirname, '..', 'configs');
