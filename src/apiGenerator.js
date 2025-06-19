@@ -106,14 +106,82 @@ async function createCrud({ app, basePath, table, mapping, rateLimit, auth, swag
 
   if (swagger) {
     const tag = tableSafe;
-    swagger.paths[`${basePath}/${tableSafe}`] = {
-      get: { tags: [tag], responses: { '200': { description: 'List' } } },
-      post: { tags: [tag], responses: { '201': { description: 'Created' } } }
+
+    if (!swagger.tags) swagger.tags = [];
+    swagger.tags.push({ name: tag, description: `${tableSafe} operations` });
+
+    const pathBase = `${basePath}/${tableSafe}`;
+
+    const idParam = {
+      name: 'id',
+      in: 'path',
+      required: true,
+      schema: { type: 'string', example: '1' },
+      description: `Primary key of ${tableSafe}`,
     };
-    swagger.paths[`${basePath}/${tableSafe}/{id}`] = {
-      get: { tags: [tag], parameters: [{ name: 'id', in: 'path', required: true }], responses: { '200': { description: 'Item' } } },
-      put: { tags: [tag], parameters: [{ name: 'id', in: 'path', required: true }], responses: { '200': { description: 'Updated' } } },
-      delete: { tags: [tag], parameters: [{ name: 'id', in: 'path', required: true }], responses: { '200': { description: 'Deleted' } } }
+
+    const properties = {};
+    for (const alias of Object.values(mapping)) {
+      properties[alias] = { type: 'string', description: `${alias} field` };
+    }
+
+    const bodySchema = {
+      required: true,
+      content: {
+        'application/json': {
+          schema: { type: 'object', properties },
+        },
+      },
+    };
+
+    swagger.paths[pathBase] = {
+      get: {
+        tags: [tag],
+        summary: `List ${tableSafe}`,
+        description: `Retrieve an array of ${tableSafe} records`,
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: [tag],
+        summary: `Create ${tableSafe}`,
+        description: `Create a new ${tableSafe} record`,
+        requestBody: bodySchema,
+        responses: { '201': { description: 'Created' } },
+      },
+    };
+
+    swagger.paths[`${pathBase}/{id}`] = {
+      get: {
+        tags: [tag],
+        summary: `Get ${tableSafe}`,
+        description: `Retrieve a single ${tableSafe} by id`,
+        parameters: [idParam],
+        responses: {
+          '200': { description: 'OK' },
+          '404': { description: 'Not Found' },
+        },
+      },
+      put: {
+        tags: [tag],
+        summary: `Update ${tableSafe}`,
+        description: `Update an existing ${tableSafe} record`,
+        parameters: [idParam],
+        requestBody: bodySchema,
+        responses: {
+          '200': { description: 'OK' },
+          '404': { description: 'Not Found' },
+        },
+      },
+      delete: {
+        tags: [tag],
+        summary: `Delete ${tableSafe}`,
+        description: `Delete an existing ${tableSafe} record`,
+        parameters: [idParam],
+        responses: {
+          '200': { description: 'OK' },
+          '404': { description: 'Not Found' },
+        },
+      },
     };
   }
 }
