@@ -2,14 +2,146 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>SQL Server API Builder</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SQL Server API Builder - Enterprise Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      * {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      }
+      
+      .gradient-bg {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+      
+      .glass-morphism {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+      }
+      
+      .shimmer {
+        background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+        background-size: 200% 100%;
+        animation: shimmer 2s infinite;
+      }
+      
+      @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+      
+      .slide-in {
+        animation: slideIn 0.3s ease-out;
+      }
+      
+      @keyframes slideIn {
+        from { 
+          opacity: 0; 
+          transform: translateY(20px);
+        }
+        to { 
+          opacity: 1; 
+          transform: translateY(0);
+        }
+      }
+      
+      .hover-lift {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      
+      .hover-lift:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
+      
+      .step-indicator {
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .step-indicator::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 3px;
+        background: #667eea;
+        transition: width 0.3s ease;
+      }
+      
+      .step-1::after { width: 33.33%; }
+      .step-2::after { width: 66.66%; }
+      .step-3::after { width: 100%; }
+      
+      .checkbox-custom {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        position: relative;
+        appearance: none;
+        border: 2px solid #e5e7eb;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+      }
+      
+      .checkbox-custom:checked {
+        background: #667eea;
+        border-color: #667eea;
+      }
+      
+      .checkbox-custom:checked::after {
+        content: '✓';
+        position: absolute;
+        color: white;
+        font-size: 14px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+      
+      .loading-spinner {
+        border: 3px solid #f3f4f6;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      .route-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        font-family: 'Consolas', 'Monaco', monospace;
+        transition: all 0.2s ease;
+      }
+      
+      .route-badge:hover {
+        transform: translateX(4px);
+      }
+      
+      .method-get { background: #dbeafe; color: #1e40af; }
+      .method-post { background: #d1fae5; color: #065f46; }
+      .method-put { background: #fef3c7; color: #92400e; }
+      .method-delete { background: #fee2e2; color: #991b1b; }
+    </style>
   </head>
-  <body class="bg-gray-50 min-h-screen">
-    <div id="app" class="min-h-screen flex flex-col"></div>
+  <body class="gradient-bg min-h-screen">
+    <div id="app" class="min-h-screen"></div>
     <script type="text/babel">
       const { useState, useEffect } = React;
 
@@ -21,6 +153,8 @@
         const [selectedCols, setSelectedCols] = useState([]);
         const [aliases, setAliases] = useState({});
         const [loading, setLoading] = useState(false);
+        const [searchTerm, setSearchTerm] = useState('');
+        const [success, setSuccess] = useState(false);
 
         useEffect(() => {
           fetch('/schema')
@@ -35,6 +169,7 @@
           setAliases({});
           setStep(2);
           setError('');
+          setSuccess(false);
         };
 
         const toggleColumn = (c) => {
@@ -56,7 +191,7 @@
 
         const validateColumns = () => {
           if (!selectedCols.length) {
-            setError('Select at least one column');
+            setError('Please select at least one column to continue');
             return;
           }
           setError('');
@@ -79,113 +214,252 @@
               body: JSON.stringify(payload),
             });
             if (!res.ok) throw new Error('Server error');
-            alert('API generated! Documentation available at /docs');
-            setStep(1);
-            setTable('');
-            setSelectedCols([]);
-            setAliases({});
+            setSuccess(true);
+            setTimeout(() => {
+              setStep(1);
+              setTable('');
+              setSelectedCols([]);
+              setAliases({});
+              setSuccess(false);
+            }, 3000);
           } catch (e) {
-            setError('Error generating API');
+            setError('Error generating API. Please try again.');
           } finally {
             setLoading(false);
           }
         };
 
         const routeBase = table ? `/api/v1/${table}` : '';
+        
+        const filteredTables = schema ? 
+          Object.keys(schema).filter(t => 
+            t.toLowerCase().includes(searchTerm.toLowerCase())
+          ) : [];
 
         return (
-          <div className="flex-grow container mx-auto p-4 pb-24">
-            <h1 className="text-2xl font-bold mb-6">SQL Server API Builder</h1>
-            {error && (
-              <div className="bg-red-100 text-red-800 p-2 mb-4 rounded">
-                {error}
+          <div className="min-h-screen p-6 lg:p-10">
+            <div className="max-w-6xl mx-auto">
+              {/* Header */}
+              <div className="text-center mb-12 slide-in">
+                <h1 className="text-5xl font-bold text-white mb-4">
+                  SQL Server API Builder
+                </h1>
+                <p className="text-white/80 text-lg">
+                  Transform your database tables into RESTful APIs in seconds
+                </p>
               </div>
-            )}
-            {step === 1 && schema && (
-              <div>
-                <h2 className="text-lg font-semibold mb-2">Step 1: Select a table</h2>
-                <div className="space-y-2">
-                  {Object.keys(schema).map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => handleSelectTable(t)}
-                      className="w-full text-left p-3 bg-white rounded shadow hover:bg-gray-50"
+
+              {/* Progress Indicator */}
+              <div className={`glass-morphism rounded-2xl p-2 mb-8 step-indicator step-${step}`}>
+                <div className="flex justify-between text-sm font-medium text-gray-700">
+                  <span className={step >= 1 ? 'text-purple-700' : ''}>1. Select Table</span>
+                  <span className={step >= 2 ? 'text-purple-700' : ''}>2. Configure Columns</span>
+                  <span className={step >= 3 ? 'text-purple-700' : ''}>3. Generate API</span>
+                </div>
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="glass-morphism bg-red-50/90 border-red-200 text-red-800 p-4 mb-6 rounded-xl flex items-center gap-3 slide-in">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  {error}
+                </div>
+              )}
+
+              {/* Success Message */}
+              {success && (
+                <div className="glass-morphism bg-green-50/90 border-green-200 text-green-800 p-4 mb-6 rounded-xl flex items-center gap-3 slide-in">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  API generated successfully! View documentation at /docs
+                </div>
+              )}
+
+              {/* Step 1: Table Selection */}
+              {step === 1 && schema && (
+                <div className="glass-morphism rounded-2xl p-8 slide-in">
+                  <h2 className="text-2xl font-semibold mb-2">Select a Table</h2>
+                  <p className="text-gray-600 mb-6">Choose the database table you want to expose as an API</p>
+                  
+                  {/* Search Box */}
+                  <div className="relative mb-6">
+                    <input
+                      type="text"
+                      placeholder="Search tables..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full px-4 py-3 pl-12 rounded-xl border border-gray-200 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all"
+                    />
+                    <svg className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredTables.map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => handleSelectTable(t)}
+                        className="bg-white hover:bg-purple-50 border border-gray-200 hover:border-purple-300 p-4 rounded-xl text-left hover-lift group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-gray-800 group-hover:text-purple-700 transition-colors">{t}</span>
+                          <svg className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                        <span className="text-sm text-gray-500 mt-1 block">{schema[t].length} columns</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Column Selection */}
+              {step === 2 && (
+                <div className="glass-morphism rounded-2xl p-8 slide-in">
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-semibold mb-2">Configure Columns</h2>
+                    <p className="text-gray-600">
+                      Select columns to include in your API for 
+                      <span className="font-mono bg-purple-100 text-purple-700 px-2 py-1 rounded ml-2">{table}</span>
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-3 mb-8 max-h-96 overflow-y-auto pr-2">
+                    {schema[table].map((c) => (
+                      <div key={c} className="bg-white rounded-xl p-4 hover:shadow-md transition-all duration-200">
+                        <div className="flex items-center gap-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedCols.includes(c)}
+                            onChange={() => toggleColumn(c)}
+                            className="checkbox-custom"
+                          />
+                          <span className="flex-1 font-medium text-gray-700">{c}</span>
+                          {selectedCols.includes(c) && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-500">Alias:</span>
+                              <input
+                                className="border border-gray-200 px-3 py-2 text-sm rounded-lg focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all"
+                                placeholder={c}
+                                value={aliases[c] || ''}
+                                onChange={(e) => handleAliasChange(c, e.target.value)}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <button 
+                      onClick={() => setStep(1)} 
+                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-medium"
                     >
-                      {t}
+                      ← Back
                     </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {step === 2 && (
-              <div>
-                <h2 className="text-lg font-semibold mb-4">Step 2: Select columns for {table}</h2>
-                <div className="space-y-2 mb-4">
-                  {schema[table].map((c) => (
-                    <label
-                      key={c}
-                      className="flex items-center space-x-2 bg-white p-2 rounded shadow"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedCols.includes(c)}
-                        onChange={() => toggleColumn(c)}
-                      />
-                      <span>{c}</span>
-                    </label>
-                  ))}
-                </div>
-                <div className="flex space-x-2">
-                  <button onClick={() => setStep(1)} className="px-4 py-2 rounded border">Back</button>
-                  <button
-                    onClick={validateColumns}
-                    className="px-4 py-2 rounded bg-blue-600 text-white"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
-            {step === 3 && (
-              <div>
-                <h2 className="text-lg font-semibold mb-4">Step 3: Rename fields</h2>
-                <div className="space-y-2 mb-4">
-                  {selectedCols.map((c) => (
-                    <div
-                      key={c}
-                      className="flex items-center space-x-2 bg-white p-2 rounded shadow"
-                    >
-                      <span className="w-1/3 truncate" title={c}>{c}</span>
-                      <input
-                        className="border rounded p-1 flex-1"
-                        value={aliases[c] !== undefined ? aliases[c] : c}
-                        onChange={(e) => handleAliasChange(c, e.target.value)}
-                      />
+                    <div className="text-sm text-gray-600">
+                      {selectedCols.length} column{selectedCols.length !== 1 ? 's' : ''} selected
                     </div>
-                  ))}
+                    <button
+                      onClick={validateColumns}
+                      className="px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all font-medium shadow-lg hover:shadow-xl"
+                    >
+                      Continue →
+                    </button>
+                  </div>
                 </div>
-                <div className="mb-4">
-                  <h3 className="font-semibold mb-1">Routes to be created</h3>
-                  <ul className="list-disc list-inside text-sm">
-                    <li>{`GET ${routeBase}`}</li>
-                    <li>{`GET ${routeBase}/:id`}</li>
-                    <li>{`POST ${routeBase}`}</li>
-                    <li>{`PUT ${routeBase}/:id`}</li>
-                    <li>{`DELETE ${routeBase}/:id`}</li>
-                  </ul>
+              )}
+
+              {/* Step 3: Confirmation */}
+              {step === 3 && (
+                <div className="glass-morphism rounded-2xl p-8 slide-in">
+                  <div className="mb-8">
+                    <h2 className="text-2xl font-semibold mb-2">Review & Generate</h2>
+                    <p className="text-gray-600">Confirm your API configuration before generation</p>
+                  </div>
+                  
+                  <div className="bg-white rounded-xl p-6 mb-6">
+                    <h3 className="font-semibold text-lg mb-4">API Endpoints</h3>
+                    <div className="space-y-2">
+                      <div className="route-badge method-get">
+                        <span className="font-bold">GET</span>
+                        <span>{routeBase}</span>
+                      </div>
+                      <div className="route-badge method-get">
+                        <span className="font-bold">GET</span>
+                        <span>{routeBase}/:id</span>
+                      </div>
+                      <div className="route-badge method-post">
+                        <span className="font-bold">POST</span>
+                        <span>{routeBase}</span>
+                      </div>
+                      <div className="route-badge method-put">
+                        <span className="font-bold">PUT</span>
+                        <span>{routeBase}/:id</span>
+                      </div>
+                      <div className="route-badge method-delete">
+                        <span className="font-bold">DELETE</span>
+                        <span>{routeBase}/:id</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white rounded-xl p-6 mb-8">
+                    <h3 className="font-semibold text-lg mb-4">Column Mapping</h3>
+                    <div className="space-y-2">
+                      {selectedCols.map(c => (
+                        <div key={c} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                          <span className="text-gray-600">{c}</span>
+                          <span className="font-mono text-sm text-purple-600">→ {aliases[c] || c}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <button 
+                      onClick={() => setStep(2)} 
+                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-medium"
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      disabled={loading}
+                      onClick={handleGenerate}
+                      className="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+                    >
+                      {loading ? (
+                        <>
+                          <div className="loading-spinner"></div>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          Generate API
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex space-x-2">
-                  <button onClick={() => setStep(2)} className="px-4 py-2 rounded border">Back</button>
+              )}
+              
+              {/* Loading State for Schema */}
+              {!schema && !error && (
+                <div className="glass-morphism rounded-2xl p-12 text-center">
+                  <div className="loading-spinner mx-auto mb-4" style={{width: '40px', height: '40px'}}></div>
+                  <p className="text-gray-600">Loading database schema...</p>
                 </div>
-              </div>
-            )}
-            <button
-              disabled={step !== 3 || loading}
-              onClick={handleGenerate}
-              className="fixed bottom-4 right-4 bg-blue-600 text-white px-6 py-3 rounded shadow-lg"
-            >
-              {loading ? 'Generating...' : 'Generate API'}
-            </button>
+              )}
+            </div>
           </div>
         );
       }
