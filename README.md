@@ -26,6 +26,7 @@ APIBuilder is an API generator for SQL Server. It provides a sleek React + Tailw
     Open `http://localhost:3000/` to launch the builder UI. After generating the API, detailed docs with examples are available at `http://localhost:3000/docs` using Redoc.
     The configuration used is saved under `configs/` and a code snippet for each
     table is written to `generated/`.
+    The documentation uses Klipboard branding with a charcoal sidebar, magenta accents and biscuit-toned examples in the right panel.
 
 ## Example
 

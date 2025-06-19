@@ -100,11 +100,12 @@ app.get('/docs',
         colors: {
           primary: { main: '#E6007A' },
           text: { primary: '#212121', secondary: '#212121' },
+          background: '#FFFFFF',
         },
         sidebar: {
           backgroundColor: '#212121',
           textColor: '#FFFFFF',
-          activeTextColor: '#F5F5DC',
+          activeTextColor: '#E6007A',
         },
         rightPanel: {
           backgroundColor: '#F5F5DC',
@@ -112,6 +113,9 @@ app.get('/docs',
         },
         typography: {
           fontFamily: 'Inter, sans-serif',
+          links: {
+            color: '#E6007A',
+          },
         },
       },
     },
