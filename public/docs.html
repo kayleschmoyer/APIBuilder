@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Elite API Docs</title>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        margin: 0;
+        font-family: Inter, sans-serif;
+        background-color: #F5F5DC;
+      }
+      redoc {
+        --color-primary: #E6007A;
+        --color-bg-sidebar: #212121;
+        --color-text-primary: #212121;
+        --color-response-success: #2ecc71;
+        --color-response-error: #e74c3c;
+        --color-http-get: #28a745;
+        --color-http-post: #E6007A;
+        --color-http-put: #f39c12;
+        --color-http-delete: #e74c3c;
+        --font-size-base: 15px;
+        --layout-max-width: 1600px;
+      }
+    </style>
+    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+  </head>
+  <body>
+    <redoc spec-url="/swagger.json"></redoc>
+  </body>
+</html>
