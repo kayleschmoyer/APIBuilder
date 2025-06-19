@@ -60,7 +60,11 @@ app.post('/configure', async (req, res) => {
   }
 });
 
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swagger));
+app.get('/swagger.json', (req, res) => {
+  res.json(swagger);
+});
+
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(null, { swaggerUrl: '/swagger.json' }));
 
 app.listen(config.port, () => {
   console.log('Server listening on port ' + config.port);
