@@ -1,57 +1,42 @@
-APIBuilder is a simple tool that generates REST APIs for SQL Server tables. It includes a small web interface so you can pick exactly which tables and columns you want to expose.
+# APIBuilder
+
+APIBuilder is an API generator for SQL Server. It provides a sleek React + Tailwind UI for choosing tables and columns and then generates secure CRUD endpoints complete with OpenAPI documentation.
 
 ## Features
 
-- Connects to a local or remote SQL Server instance using a connection pool.
-- Inspects `INFORMATION_SCHEMA` to find all tables and columns.
-- Web UI allows choosing tables and columns to expose.
-- Generates CRUD endpoints (list, get by id, create, update, delete) for the selected tables.
-- Uses parameterized queries for all data access to avoid SQL injection.
-- Runs as an Express application on Node.js.
+- Connects to SQL Server using credentials from `.env`
+- Introspects `INFORMATION_SCHEMA` to discover tables and columns
+- React interface allows selecting tables, columns and aliases
+- Generates versioned RESTful endpoints with JWT or API key security
+- Optional rate limiting middleware
+- Automatically publishes Swagger documentation
 
 ## Usage
 
 1. Install dependencies:
-
    ```bash
    npm install
    ```
-
-2. Copy `.env.example` to `.env` and edit it with your SQL Server settings. The
-   server loads this file automatically using `dotenv`. Alternatively, set the
-   following environment variables:
-
-   - `DB_USER` – SQL Server username (default `sa`)
-   - `DB_PASSWORD` – password
-   - `DB_SERVER` – host name or IP (default `localhost`)
-   - `DB_NAME` – database name (default `master`)
-   - `PORT` – port for the HTTP server (default `3000`)
-
-
+2. Copy `.env.example` to `.env` and edit it with your SQL Server settings.
 3. Start the API server:
-
    ```bash
    npm start
    ```
-
-   On startup the server exposes all tables that have primary keys. You can open
-   `http://localhost:3000/admin` to selectively regenerate endpoints if you want
-   finer control.
+   Open `http://localhost:3000/` to launch the builder UI. After generating the API, docs are available at `http://localhost:3000/docs`.
 
 ## Example
 
-If your database contains a table called `Users` with primary key `UserId`, the server will expose endpoints like:
+If your database contains a table called `Users` with primary key `UserId`, the generated API exposes endpoints such as:
 
-- `GET /Users` – list all users
-- `GET /Users/:UserId` – get a single user
-- `POST /Users` – create a user (fields in JSON body)
-- `PUT /Users/:UserId` – update a user
-- `DELETE /Users/:UserId` – delete a user
+- `GET /api/v1/Users` – list all users
+- `GET /api/v1/Users/:id` – get a single user
+- `POST /api/v1/Users` – create a user
+- `PUT /api/v1/Users/:id` – update a user
+- `DELETE /api/v1/Users/:id` – delete a user
 
-The same pattern applies to all other tables that have primary keys defined.
+All routes require authentication via JWT in the `Authorization` header or an API key in `x-api-key`.
 
 ## Notes
 
-- Only tables with primary keys are exposed for safety. Tables without primary keys are skipped.
-- Column and table names are validated to contain only letters, numbers and underscores to mitigate SQL injection risks.
-- This project intentionally avoids database-specific features beyond standard SQL so that it works with any SQL Server edition.
+- Only tables with primary keys are exposed.
+- Column and table names are validated to mitigate SQL injection.

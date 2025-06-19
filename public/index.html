@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>SQL Server API Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body class="bg-gray-50 p-4">
+    <div id="app"></div>
+
+    <script type="text/babel">
+      const App = () => {
+        const [schema, setSchema] = React.useState({});
+        React.useEffect(() => {
+          fetch('/schema')
+            .then(r => r.json())
+            .then(setSchema);
+        }, []);
+
+        const handleGenerate = async () => {
+          const cfg = {};
+          Object.entries(schema).forEach(([table, cols]) => {
+            const cobj = {};
+            cols.forEach(col => {
+              const cb = document.getElementById(`${table}_${col}`);
+              if (cb.checked) {
+                const alias = document.getElementById(`${table}_${col}_alias`).value || col;
+                cobj[col] = alias;
+              }
+            });
+            if (Object.keys(cobj).length) cfg[table] = { columns: cobj };
+          });
+          await fetch('/configure', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cfg)
+          });
+          alert('API generated! Documentation at /docs');
+        };
+
+        return (
+          <div className="max-w-3xl mx-auto">
+            <h1 className="text-2xl font-bold mb-4">SQL Server API Builder</h1>
+            {Object.entries(schema).map(([table, cols]) => (
+              <div key={table} className="mb-6 border p-4 rounded bg-white">
+                <h2 className="font-semibold mb-2">{table}</h2>
+                {cols.map(col => (
+                  <div key={col} className="flex items-center mb-1">
+                    <input id={`${table}_${col}`} type="checkbox" className="mr-2" defaultChecked />
+                    <label htmlFor={`${table}_${col}`} className="mr-2 w-40">{col}</label>
+                    <input id={`${table}_${col}_alias`} className="border p-1 flex-1" defaultValue={col} />
+                  </div>
+                ))}
+              </div>
+            ))}
+            <button onClick={handleGenerate} className="bg-blue-600 text-white px-4 py-2 rounded">Generate API</button>
+          </div>
+        );
+      };
+
+      ReactDOM.render(<App />, document.getElementById('app'));
+    </script>
+  </body>
+</html>
