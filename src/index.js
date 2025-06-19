@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
-const swaggerUi = require('swagger-ui-express');
+const redoc = require('redoc-express');
 const config = require('./config');
 const { loadSchema } = require('./db');
 const { createCrud } = require('./apiGenerator');
@@ -90,26 +90,33 @@ app.get('/swagger.json', (req, res) => {
   res.json(swagger);
 });
 
-const swaggerUiOptions = {
-  swaggerUrl: '/swagger.json',
-  explorer: true,
-  customSiteTitle: 'Elite API Explorer',
-  customCss: `
-    .swagger-ui .topbar {
-      background-color: #0f172a;
-    }
-    .swagger-ui .topbar .link, .swagger-ui .topbar .link:visited {
-      color: #fff;
-      font-weight: bold;
-      font-size: 1.25rem;
-    }
-    .swagger-ui .info hgroup.main h2, .swagger-ui .info hgroup.main a {
-      font-size: 2rem;
-      font-weight: 700;
-    }
-  `,
-};
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(null, swaggerUiOptions));
+app.get('/docs',
+  redoc({
+    title: 'Elite API Explorer',
+    specUrl: '/swagger.json',
+    redocOptions: {
+      scrollYOffset: 50,
+      theme: {
+        colors: {
+          primary: { main: '#E6007A' },
+          text: { primary: '#212121', secondary: '#212121' },
+        },
+        sidebar: {
+          backgroundColor: '#212121',
+          textColor: '#FFFFFF',
+          activeTextColor: '#F5F5DC',
+        },
+        rightPanel: {
+          backgroundColor: '#F5F5DC',
+          textColor: '#212121',
+        },
+        typography: {
+          fontFamily: 'Inter, sans-serif',
+        },
+      },
+    },
+  })
+);
 
 (async () => {
   const codeDir = path.join(__dirname, '..', 'configs');
