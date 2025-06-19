@@ -27,9 +27,10 @@ app.get('/schema', async (req, res) => {
 
 app.post('/configure', async (req, res) => {
   try {
-    const configData = req.body; // { table: { columns: { col: alias } } }
+    const { name, tables } = req.body; // { name, tables: { table: { columns } } }
     const basePath = '/api/v1';
-    for (const [table, cfg] of Object.entries(configData)) {
+    if (name) swagger.info.title = name;
+    for (const [table, cfg] of Object.entries(tables)) {
       await createCrud({
         app,
         basePath,
@@ -41,8 +42,10 @@ app.post('/configure', async (req, res) => {
       });
     }
     const fs = require('fs');
-    const file = path.join(__dirname, '..', 'configs', `api-${Date.now()}.json`);
-    fs.writeFileSync(file, JSON.stringify(configData, null, 2));
+    const dir = path.join(__dirname, '..', 'configs');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    const file = path.join(dir, `api-${Date.now()}.json`);
+    fs.writeFileSync(file, JSON.stringify(req.body, null, 2));
     res.json({ status: 'ok', file: path.basename(file) });
   } catch (e) {
     console.error(e);

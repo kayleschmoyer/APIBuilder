@@ -149,9 +149,11 @@
         const [schema, setSchema] = useState(null);
         const [error, setError] = useState('');
         const [step, setStep] = useState(1);
-        const [table, setTable] = useState('');
-        const [selectedCols, setSelectedCols] = useState([]);
+        const [selectedTables, setSelectedTables] = useState([]);
+        const [tableIndex, setTableIndex] = useState(0);
+        const [selectedCols, setSelectedCols] = useState({});
         const [aliases, setAliases] = useState({});
+        const [apiName, setApiName] = useState('');
         const [loading, setLoading] = useState(false);
         const [searchTerm, setSearchTerm] = useState('');
         const [success, setSuccess] = useState(false);
@@ -163,48 +165,73 @@
             .catch(() => setError('Failed to load schema'));
         }, []);
 
-        const handleSelectTable = (t) => {
-          setTable(t);
-          setSelectedCols([]);
+        const toggleTable = (t) => {
+          setSelectedTables((prev) =>
+            prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]
+          );
+        };
+
+        const validateTables = () => {
+          if (!selectedTables.length) {
+            setError('Please select at least one table to continue');
+            return;
+          }
+          setError('');
+          setTableIndex(0);
+          setSelectedCols({});
           setAliases({});
           setStep(2);
-          setError('');
-          setSuccess(false);
         };
 
         const toggleColumn = (c) => {
+          const tbl = selectedTables[tableIndex];
           setSelectedCols((prev) => {
-            if (prev.includes(c)) {
-              const out = prev.filter((x) => x !== c);
-              const newAliases = { ...aliases };
+            const cols = prev[tbl] || [];
+            if (cols.includes(c)) {
+              const out = cols.filter((x) => x !== c);
+              const newAliases = { ...(aliases[tbl] || {}) };
               delete newAliases[c];
-              setAliases(newAliases);
-              return out;
+              setAliases({ ...aliases, [tbl]: newAliases });
+              return { ...prev, [tbl]: out };
             }
-            return [...prev, c];
+            return { ...prev, [tbl]: [...cols, c] };
           });
         };
 
         const handleAliasChange = (c, val) => {
-          setAliases((a) => ({ ...a, [c]: val }));
+          const tbl = selectedTables[tableIndex];
+          setAliases((a) => ({
+            ...a,
+            [tbl]: { ...(a[tbl] || {}), [c]: val },
+          }));
         };
 
         const validateColumns = () => {
-          if (!selectedCols.length) {
+          const tbl = selectedTables[tableIndex];
+          const cols = selectedCols[tbl] || [];
+          if (!cols.length) {
             setError('Please select at least one column to continue');
             return;
           }
-          setError('');
-          setStep(3);
+          if (tableIndex < selectedTables.length - 1) {
+            setError('');
+            setTableIndex(tableIndex + 1);
+          } else {
+            setError('');
+            setStep(3);
+          }
         };
 
         const handleGenerate = async () => {
-          const mapping = {};
-          selectedCols.forEach((c) => {
-            const v = aliases[c] && aliases[c].trim();
-            mapping[c] = v || c;
+          const payload = { name: apiName, tables: {} };
+          selectedTables.forEach((t) => {
+            const mapping = {};
+            (selectedCols[t] || []).forEach((c) => {
+              const v = aliases[t] && aliases[t][c] && aliases[t][c].trim();
+              mapping[c] = v || c;
+            });
+            payload.tables[t] = { columns: mapping };
           });
-          const payload = { [table]: { columns: mapping } };
           setLoading(true);
           setError('');
           try {
@@ -217,9 +244,11 @@
             setSuccess(true);
             setTimeout(() => {
               setStep(1);
-              setTable('');
-              setSelectedCols([]);
+              setSelectedTables([]);
+              setSelectedCols({});
               setAliases({});
+              setApiName('');
+              setTableIndex(0);
               setSuccess(false);
             }, 3000);
           } catch (e) {
@@ -229,7 +258,6 @@
           }
         };
 
-        const routeBase = table ? `/api/v1/${table}` : '';
         
         const filteredTables = schema ? 
           Object.keys(schema).filter(t => 
@@ -281,8 +309,8 @@
               {/* Step 1: Table Selection */}
               {step === 1 && schema && (
                 <div className="glass-morphism rounded-2xl p-8 slide-in">
-                  <h2 className="text-2xl font-semibold mb-2">Select a Table</h2>
-                  <p className="text-gray-600 mb-6">Choose the database table you want to expose as an API</p>
+                  <h2 className="text-2xl font-semibold mb-2">Select Tables</h2>
+                  <p className="text-gray-600 mb-6">Choose one or more tables to expose as an API</p>
                   
                   {/* Search Box */}
                   <div className="relative mb-6">
@@ -298,22 +326,29 @@
                     </svg>
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-2 mb-6">
                     {filteredTables.map((t) => (
-                      <button
-                        key={t}
-                        onClick={() => handleSelectTable(t)}
-                        className="bg-white hover:bg-purple-50 border border-gray-200 hover:border-purple-300 p-4 rounded-xl text-left hover-lift group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-gray-800 group-hover:text-purple-700 transition-colors">{t}</span>
-                          <svg className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
+                      <label key={t} className="flex items-center justify-between bg-white border border-gray-200 p-4 rounded-xl hover:bg-purple-50">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            className="checkbox-custom"
+                            checked={selectedTables.includes(t)}
+                            onChange={() => toggleTable(t)}
+                          />
+                          <span className="font-medium text-gray-800">{t}</span>
                         </div>
-                        <span className="text-sm text-gray-500 mt-1 block">{schema[t].length} columns</span>
-                      </button>
+                        <span className="text-sm text-gray-500">{schema[t].length} columns</span>
+                      </label>
                     ))}
+                  </div>
+                  <div className="text-right">
+                    <button
+                      onClick={validateTables}
+                      className="px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all font-medium shadow-lg hover:shadow-xl"
+                    >
+                      Continue →
+                    </button>
                   </div>
                 </div>
               )}
@@ -324,29 +359,29 @@
                   <div className="mb-6">
                     <h2 className="text-2xl font-semibold mb-2">Configure Columns</h2>
                     <p className="text-gray-600">
-                      Select columns to include in your API for 
-                      <span className="font-mono bg-purple-100 text-purple-700 px-2 py-1 rounded ml-2">{table}</span>
+                      Select columns to include in your API for
+                      <span className="font-mono bg-purple-100 text-purple-700 px-2 py-1 rounded ml-2">{selectedTables[tableIndex]}</span>
                     </p>
                   </div>
                   
                   <div className="space-y-3 mb-8 max-h-96 overflow-y-auto pr-2">
-                    {schema[table].map((c) => (
+                    {schema[selectedTables[tableIndex]].map((c) => (
                       <div key={c} className="bg-white rounded-xl p-4 hover:shadow-md transition-all duration-200">
                         <div className="flex items-center gap-4">
                           <input
                             type="checkbox"
-                            checked={selectedCols.includes(c)}
+                            checked={(selectedCols[selectedTables[tableIndex]] || []).includes(c)}
                             onChange={() => toggleColumn(c)}
                             className="checkbox-custom"
                           />
                           <span className="flex-1 font-medium text-gray-700">{c}</span>
-                          {selectedCols.includes(c) && (
+                          {(selectedCols[selectedTables[tableIndex]] || []).includes(c) && (
                             <div className="flex items-center gap-2">
                               <span className="text-sm text-gray-500">Alias:</span>
                               <input
                                 className="border border-gray-200 px-3 py-2 text-sm rounded-lg focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all"
                                 placeholder={c}
-                                value={aliases[c] || ''}
+                                value={(aliases[selectedTables[tableIndex]] && aliases[selectedTables[tableIndex]][c]) || ''}
                                 onChange={(e) => handleAliasChange(c, e.target.value)}
                               />
                             </div>
@@ -355,16 +390,18 @@
                       </div>
                     ))}
                   </div>
-                  
+
                   <div className="flex justify-between items-center">
-                    <button 
-                      onClick={() => setStep(1)} 
+                    <button
+                      onClick={() => {
+                        if (tableIndex === 0) { setStep(1); } else { setTableIndex(tableIndex - 1); }
+                      }}
                       className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-medium"
                     >
                       ← Back
                     </button>
                     <div className="text-sm text-gray-600">
-                      {selectedCols.length} column{selectedCols.length !== 1 ? 's' : ''} selected
+                      {(selectedCols[selectedTables[tableIndex]] || []).length} column{(selectedCols[selectedTables[tableIndex]] || []).length !== 1 ? 's' : ''} selected
                     </div>
                     <button
                       onClick={validateColumns}
@@ -383,44 +420,53 @@
                     <h2 className="text-2xl font-semibold mb-2">Review & Generate</h2>
                     <p className="text-gray-600">Confirm your API configuration before generation</p>
                   </div>
-                  
-                  <div className="bg-white rounded-xl p-6 mb-6">
-                    <h3 className="font-semibold text-lg mb-4">API Endpoints</h3>
-                    <div className="space-y-2">
-                      <div className="route-badge method-get">
-                        <span className="font-bold">GET</span>
-                        <span>{routeBase}</span>
-                      </div>
-                      <div className="route-badge method-get">
-                        <span className="font-bold">GET</span>
-                        <span>{routeBase}/:id</span>
-                      </div>
-                      <div className="route-badge method-post">
-                        <span className="font-bold">POST</span>
-                        <span>{routeBase}</span>
-                      </div>
-                      <div className="route-badge method-put">
-                        <span className="font-bold">PUT</span>
-                        <span>{routeBase}/:id</span>
-                      </div>
-                      <div className="route-badge method-delete">
-                        <span className="font-bold">DELETE</span>
-                        <span>{routeBase}/:id</span>
-                      </div>
-                    </div>
+
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">API Name</label>
+                    <input
+                      className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                      value={apiName}
+                      onChange={(e) => setApiName(e.target.value)}
+                    />
                   </div>
-                  
-                  <div className="bg-white rounded-xl p-6 mb-8">
-                    <h3 className="font-semibold text-lg mb-4">Column Mapping</h3>
-                    <div className="space-y-2">
-                      {selectedCols.map(c => (
-                        <div key={c} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                          <span className="text-gray-600">{c}</span>
-                          <span className="font-mono text-sm text-purple-600">→ {aliases[c] || c}</span>
+
+                  {selectedTables.map(t => (
+                    <div key={t} className="bg-white rounded-xl p-6 mb-6">
+                      <h3 className="font-semibold text-lg mb-4">{t} Endpoints</h3>
+                      <div className="space-y-2">
+                        <div className="route-badge method-get">
+                          <span className="font-bold">GET</span>
+                          <span>/api/v1/{t}</span>
                         </div>
-                      ))}
+                        <div className="route-badge method-get">
+                          <span className="font-bold">GET</span>
+                          <span>/api/v1/{t}/:id</span>
+                        </div>
+                        <div className="route-badge method-post">
+                          <span className="font-bold">POST</span>
+                          <span>/api/v1/{t}</span>
+                        </div>
+                        <div className="route-badge method-put">
+                          <span className="font-bold">PUT</span>
+                          <span>/api/v1/{t}/:id</span>
+                        </div>
+                        <div className="route-badge method-delete">
+                          <span className="font-bold">DELETE</span>
+                          <span>/api/v1/{t}/:id</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-6">
+                        <h4 className="font-semibold mb-2">Column Mapping</h4>
+                        {(selectedCols[t] || []).map(c => (
+                          <div key={c} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                            <span className="text-gray-600">{c}</span>
+                            <span className="font-mono text-sm text-purple-600">→ {(aliases[t] && aliases[t][c]) || c}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  ))}
                   
                   <div className="flex justify-between">
                     <button 
