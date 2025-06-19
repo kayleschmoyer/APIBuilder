@@ -6,6 +6,7 @@ const config = require('./config');
 const { loadSchema } = require('./db');
 const { createCrud } = require('./apiGenerator');
 const authenticate = require('./middleware/auth');
+const fs = require('fs');
 
 const app = express();
 app.use(express.json());
@@ -47,8 +48,23 @@ app.post('/configure', async (req, res) => {
         auth: authenticate,
         swagger,
       });
+      const codeDir = path.join(__dirname, '..', 'generated');
+      if (!fs.existsSync(codeDir)) fs.mkdirSync(codeDir);
+      const snippet = `const { createCrud } = require('../src/apiGenerator');
+
+module.exports = ({ app, rateLimit, auth, swagger }) =>
+  createCrud({
+    app,
+    basePath: ${JSON.stringify(basePath)},
+    table: ${JSON.stringify(table)},
+    mapping: ${JSON.stringify(cfg.columns, null, 2)},
+    rateLimit,
+    auth,
+    swagger,
+  });
+`;
+      fs.writeFileSync(path.join(codeDir, `${table}.js`), snippet);
     }
-    const fs = require('fs');
     const dir = path.join(__dirname, '..', 'configs');
     if (!fs.existsSync(dir)) fs.mkdirSync(dir);
     const file = path.join(dir, `api-${Date.now()}.json`);
