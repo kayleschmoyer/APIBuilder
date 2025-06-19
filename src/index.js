@@ -82,6 +82,28 @@ app.get('/swagger.json', (req, res) => {
 
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(null, { swaggerUrl: '/swagger.json' }));
 
-app.listen(config.port, () => {
-  console.log('Server listening on port ' + config.port);
-});
+(async () => {
+  const codeDir = path.join(__dirname, '..', 'configs');
+  if (fs.existsSync(codeDir)) {
+    const files = fs.readdirSync(codeDir).filter(f => f.endsWith('.json'));
+    for (const file of files) {
+      const json = JSON.parse(fs.readFileSync(path.join(codeDir, file)));
+      const basePath = '/api/v1';
+      if (json.name) swagger.info.title = json.name;
+      for (const [table, cfg] of Object.entries(json.tables)) {
+        await createCrud({
+          app,
+          basePath,
+          table,
+          mapping: cfg.columns,
+          rateLimit: limiter,
+          auth: authenticate,
+          swagger,
+        });
+      }
+    }
+  }
+  app.listen(config.port, () => {
+    console.log('Server listening on port ' + config.port);
+  });
+})();
